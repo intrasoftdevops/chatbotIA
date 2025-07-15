@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+
+# Entorno virtual
+venv/
+*.env
+
+# LlamaIndex
+storage/
+
+# macOS
+.DS_Store
