@@ -1,6 +1,58 @@
-# Chatbot (RAG con Gemini)
+# Chatbot de Política y Tribus (RAG con Gemini)
 
-Este es un chatbot conversacional que responde preguntas basadas en un conjunto de documentos proporcionados, **Retrieval Augmented Generation (RAG)** para buscar información relevante en los documentos y generar respuestas precisas y contextualmente informadas.
+Este es un chatbot conversacional que responde preguntas sobre política colombiana y el sistema de tribus políticas, utilizando **Retrieval Augmented Generation (RAG)** para buscar información relevante en documentos y generar respuestas precisas y contextualmente informadas.
+
+## 🎯 **Funcionalidades Principales**
+
+### **1. Respuestas sobre Política Colombiana**
+- Consultas sobre partidos políticos, democracia, sistema electoral
+- Información basada en documentos políticos disponibles
+- Respuestas contextuales y empáticas
+
+### **2. Sistema de Tribus Políticas**
+- **Detección automática** de preguntas sobre tribus
+- **Información sobre coordinadores** y acceso a grupos
+- **Explicación del sistema** de voluntarios organizados por región
+- **Orientación** para contactar coordinadores locales
+
+### **3. Patrones de Detección de Tribus/Referidos**
+El chatbot reconoce automáticamente **60+ variaciones** de preguntas sobre tribus y referidos, incluyendo:
+- "Mándame el link de mi tribu"
+- "Envíame el link de mi tribu"
+- "¿Me puedes mandar el enlace de mi tribu?"
+- "Pásame el link de la tribu"
+- "¿Dónde está el link de mi tribu?"
+- "Mandame el link d mi tribu"
+- "Enlace tribu porfa"
+- "Link tribu ya"
+- "Dame el enlace de mi grupo"
+- "¿Cómo entro a la tribu?"
+- "Parce, mándame el link de mi tribu"
+- "Oe, ¿tenés el enlace de la tribu?"
+- "Mijo, pásame el link del parche"
+- "Necesito el link pa entrar a mi tribu"
+- "¿Dónde está el bendito link de la tribu?"
+- "Quiero entrar a mi tribu"
+- "Perdí el link de la tribu"
+- "Ayúdame con el link de la tribu"
+- "Como es que invito gente?"
+- "Dame el link"
+- **"Mándame el link de mis referidos"**
+- **"Envíame el enlace de mis referidos"**
+- **"¿Me puedes mandar el link de referidos?"**
+- **"Pásame el link de referidos"**
+- **"¿Dónde está mi enlace de referidos?"**
+- **"Parce, mándame el link de mis referidos"**
+- **"Link de referidos porfa"**
+- **"¿Cómo obtengo mi link de referidos?"**
+
+**Cobertura completa** de expresiones colombianas, jerga local y variaciones informales. **"Tribu" y "referidos" son sinónimos** en el sistema.
+
+### **4. Respuestas Inteligentes**
+- **Contextuales**: Adaptadas al tipo de pregunta
+- **Informativas**: Explican el sistema de tribus
+- **Orientadoras**: Guían hacia coordinadores locales
+- **Empáticas**: Mantienen un tono amigable
 
 El proyecto está construido con:
 
@@ -77,7 +129,7 @@ Este comando inicia el servidor web que aloja la API del chatbot. El servidor de
 python -m uvicorn main:app --reload
 ```
 
-  * **Verificación:** Si todo funciona, verás un mensaje que dice "Uvicorn running on [http://127.0.0.1:8000](http://127.0.0.1:8000)" y "Índice cargado y motor de consulta del chatbot listo para usar.".
+  * **Verificación:** Si todo funciona, verás un mensaje que dice "Uvicorn running on [http://127.0.0.1:8000](http://127.0.0.1:8000)" y "Índice cargado y motor de conversación del chatbot listo para usar.".
 
 -----
 
@@ -92,5 +144,45 @@ Mientras el servidor está activo, puedes acceder a la interfaz de documentació
     ```
 3.  En la interfaz, expande el endpoint `POST /chat`, haz clic en "Try it out" e introduce tu pregunta en el campo `query`.
 4.  Haz clic en "Execute" para obtener una respuesta de tu chatbot.
+
+-----
+
+### Testing de Funcionalidades
+
+Para probar que el chatbot responde correctamente a preguntas sobre tribus:
+
+```bash
+python test_tribal_responses.py
+```
+
+Este script prueba:
+- **Preguntas sobre tribus**: Verifica que el chatbot detecte y responda apropiadamente
+- **Preguntas de control**: Confirma que no mencione tribus en preguntas generales
+- **Respuestas contextuales**: Valida que las respuestas sean relevantes
+
+-----
+
+### Ejemplos de Uso
+
+#### Preguntas sobre Tribus:
+```
+Usuario: "¿Me puedes mandar el link de mi tribu?"
+Bot: "Las tribus son grupos de voluntarios organizados por región. Para obtener el enlace de tu tribu específica, necesitas contactar a tu coordinador local. ¿En qué ciudad vives? Te puedo ayudar a contactar al coordinador de tu zona."
+```
+
+#### Preguntas Generales de Política:
+```
+Usuario: "¿Qué es la democracia?"
+Bot: "La democracia es un sistema político donde el poder reside en el pueblo..."
+```
+
+-----
+
+### API Endpoints
+
+- **GET /**: Mensaje de bienvenida
+- **POST /chat**: Endpoint principal para enviar preguntas
+  - Body: `{"query": "tu pregunta", "session_id": "identificador_sesion"}`
+  - Response: `{"response": {"response": "respuesta del bot"}}`
 
 
