@@ -2,6 +2,19 @@
 
 Este es un chatbot conversacional que responde preguntas sobre política colombiana y el sistema de tribus políticas, utilizando **Retrieval Augmented Generation (RAG)** para buscar información relevante en documentos y generar respuestas precisas y contextualmente informadas.
 
+## 🚀 **Cambios Recientes**
+
+### **Limpieza y Optimización**
+- ✅ **IA Política Genérica**: Eliminadas referencias específicas a Daniel Quintero
+- ✅ **Configuración Segura**: Variables sensibles movidas a `.env`
+- ✅ **Código Limpio**: Eliminados comentarios excesivos y logs verbosos
+- ✅ **Documentación Actualizada**: Instrucciones claras y concisas
+
+### **Nuevo Comando de Ejecución**
+```bash
+python run_server.py
+```
+
 ## 🎯 **Funcionalidades Principales**
 
 ### **1. Respuestas sobre Política Colombiana**
@@ -54,6 +67,11 @@ El chatbot reconoce automáticamente **60+ variaciones** de preguntas sobre trib
 - **Orientadoras**: Guían hacia coordinadores locales
 - **Empáticas**: Mantienen un tono amigable
 
+### **5. Analytics Integrado**
+- **Datos de Rendimiento**: Ranking, posición geográfica, referidos
+- **Respuestas Personalizadas**: Basadas en métricas reales del usuario
+- **IA Política Especializada**: Análisis de campañas políticas
+
 El proyecto está construido con:
 
   * **FastAPI**: Para crear la API REST que aloja el chatbot.
@@ -90,12 +108,20 @@ Sigue estos pasos para configurar tu proyecto y sus dependencias.
     source venv/bin/activate
     ```
 
-3.  **Configurar tu clave API:**
+3.  **Configurar variables de entorno:**
 
       * Crea un archivo llamado `.env` en la raíz del proyecto.
-      * Añade tu clave API de Gemini en la siguiente línea:
+      * Añade las siguientes variables:
         ```env
+        # Google API Configuration
         GOOGLE_API_KEY="TU_CLAVE_API_DE_GEMINI"
+        
+        # Model Configuration (opcional, valores por defecto)
+        LLM_MODEL=models/gemini-1.5-flash
+        EMBEDDING_MODEL=models/embedding-001
+        
+        # Storage Configuration (opcional, valor por defecto)
+        INDEX_DIR=storage
         ```
 
 
@@ -126,10 +152,10 @@ python prepare_data.py
 Este comando inicia el servidor web que aloja la API del chatbot. El servidor debe estar corriendo para poder interactuar con el chatbot.
 
 ```bash
-python -m uvicorn main:app --reload
+python run_server.py
 ```
 
-  * **Verificación:** Si todo funciona, verás un mensaje que dice "Uvicorn running on [http://127.0.0.1:8000](http://127.0.0.1:8000)" y "Índice cargado y motor de conversación del chatbot listo para usar.".
+  * **Verificación:** Si todo funciona, verás un mensaje que dice "✅ Chatbot inicializado correctamente" y el servidor estará disponible en [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
 -----
 
@@ -147,6 +173,30 @@ Mientras el servidor está activo, puedes acceder a la interfaz de documentació
 
 -----
 
+### Seguridad y Configuración
+
+#### **Variables de Entorno**
+- ✅ **GOOGLE_API_KEY**: Clave API de Gemini (requerida)
+- ✅ **LLM_MODEL**: Modelo de lenguaje (opcional, default: `models/gemini-1.5-flash`)
+- ✅ **EMBEDDING_MODEL**: Modelo de embeddings (opcional, default: `models/embedding-001`)
+- ✅ **INDEX_DIR**: Directorio de almacenamiento (opcional, default: `storage`)
+
+#### **Archivos Sensibles**
+- ✅ **`.env`**: Incluido en `.gitignore` para proteger credenciales
+- ✅ **`storage/`**: Directorio de índices incluido en `.gitignore`
+- ✅ **Logs Seguros**: Información sensible truncada en logs
+
+#### **Configuración Recomendada**
+```bash
+# Copiar archivo de ejemplo
+cp env.example .env
+
+# Editar con tus credenciales
+nano .env
+```
+
+-----
+
 ### Testing de Funcionalidades
 
 Para probar que el chatbot responde correctamente a preguntas sobre tribus:
@@ -159,6 +209,26 @@ Este script prueba:
 - **Preguntas sobre tribus**: Verifica que el chatbot detecte y responda apropiadamente
 - **Preguntas de control**: Confirma que no mencione tribus en preguntas generales
 - **Respuestas contextuales**: Valida que las respuestas sean relevantes
+
+-----
+
+### Mejoras Implementadas
+
+#### **Limpieza del Código**
+- ✅ **Comentarios Optimizados**: Eliminados comentarios excesivos y verbosos
+- ✅ **Logs Seguros**: Información sensible truncada (solo primeros 8 caracteres del session_id)
+- ✅ **Variables de Entorno**: Configuración centralizada y segura
+- ✅ **Código Limpio**: Estructura más legible y mantenible
+
+#### **IA Política Genérica**
+- ✅ **Sin Referencias Específicas**: Eliminadas menciones a Daniel Quintero
+- ✅ **Reutilizable**: Aplicable a cualquier campaña política
+- ✅ **Enfoque Genérico**: Mantiene el estilo político sin personalizar
+
+#### **Configuración Segura**
+- ✅ **Variables Sensibles**: Movidas a archivo `.env`
+- ✅ **Valores por Defecto**: Configuración automática si no se especifican variables
+- ✅ **Protección de Credenciales**: `.env` incluido en `.gitignore`
 
 -----
 
@@ -184,5 +254,11 @@ Bot: "La democracia es un sistema político donde el poder reside en el pueblo..
 - **POST /chat**: Endpoint principal para enviar preguntas
   - Body: `{"query": "tu pregunta", "session_id": "identificador_sesion"}`
   - Response: `{"response": {"response": "respuesta del bot"}}`
+- **POST /tribal-analysis**: Análisis especializado de consultas sobre tribus
+  - Body: `{"query": "tu pregunta", "session_id": "identificador_sesion", "user_data": {}}`
+  - Response: `{"is_tribal_request": true, "ai_response": "respuesta", "referral_code": "", "user_name": "", "should_generate_link": true}`
+- **POST /analytics-chat**: Consultas con datos de analytics del usuario
+  - Body: `{"query": "tu pregunta", "session_id": "identificador_sesion", "user_data": {"analytics_data": {...}}}`
+  - Response: `{"response": {"response": "respuesta personalizada con datos de analytics"}}`
 
 

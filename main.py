@@ -1,26 +1,24 @@
-import os  # Importa el módulo os para interactuar con el sistema operativo
-from dotenv import load_dotenv  # Carga variables de entorno desde un archivo .env
-from fastapi import FastAPI, HTTPException  # Importa FastAPI para crear la API y manejar excepciones HTTP
-from pydantic import BaseModel  # Importa BaseModel para definir modelos de datos
-from llama_index.core import StorageContext, load_index_from_storage  # Importa clases para manejar el almacenamiento y cargar índices
-from llama_index.llms.gemini import Gemini  # Importa el modelo de lenguaje Gemini
-from llama_index.embeddings.gemini import GeminiEmbedding  # Importa el modelo de embeddings Gemini
-from llama_index.core.query_engine import RetrieverQueryEngine  # Importa el motor de consulta
-from llama_index.core.response_synthesizers import CompactAndRefine  # Importa el sintetizador de respuestas
-from llama_index.core.prompts import PromptTemplate  # Importa la plantilla de prompts
-
-# --- Importaciones para la memoria conversacional ---
-from llama_index.core.chat_engine import ContextChatEngine  # Importa el motor de chat con contexto
-from llama_index.core.llms import ChatMessage, MessageRole  # Importa clases para manejar mensajes de chat
-from typing import Dict, List  # Importa tipos para anotaciones
-# ---------------------------------------------------
+import os
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from llama_index.core import StorageContext, load_index_from_storage
+from llama_index.llms.gemini import Gemini
+from llama_index.embeddings.gemini import GeminiEmbedding
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.response_synthesizers import CompactAndRefine
+from llama_index.core.prompts import PromptTemplate
+from llama_index.core.chat_engine import ContextChatEngine
+from llama_index.core.llms import ChatMessage, MessageRole
+from typing import Dict, List
 
 # --- CONFIGURACIÓN ---
-load_dotenv()  # Carga las variables de entorno desde el archivo .env
-os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")  # Establece la clave de API de Google
+load_dotenv()
 
-INDEX_DIR = "storage"  # Directorio donde se guardará el índice
-LLM_MODEL = "gemini-1.5-flash"  # Modelo de lenguaje a utilizar
+# Configuración desde variables de entorno
+INDEX_DIR = os.getenv("INDEX_DIR", "storage")
+LLM_MODEL = os.getenv("LLM_MODEL", "models/gemini-1.5-flash")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "models/embedding-001")
 
 # --- PROMPT PERSONALIZADO PARA RESPUESTAS GENERALES Y TRIBALES ---
 QA_PROMPT_TMPL = (
@@ -84,60 +82,68 @@ QA_PROMPT = PromptTemplate(QA_PROMPT_TMPL) # Crea una plantilla de prompt a part
 # -------------------------------------------------------------
 
 app = FastAPI(
-    title="Chatbot de Política y Tribus (RAG con Gemini)",  # Título de la aplicación
-    description="API para interactuar con un chatbot que responde preguntas sobre política colombiana, documentos políticos y el sistema de tribus, con memoria conversacional (gestionada por el servidor).",  # Descripción de la API
-    version="1.0.0"  # Versión de la API
+    title="Chatbot de Política y Tribus (RAG con Gemini)",
+    description="API para interactuar con un chatbot que responde preguntas sobre política colombiana, documentos políticos y el sistema de tribus, con memoria conversacional (gestionada por el servidor).",
+    version="1.0.0"
 )
 
-# --- ALMACENAMIENTO EN MEMORIA PARA EL HISTORIAL DE CHAT ---
-chat_histories: Dict[str, List[Dict[str, str]]] = {}  # Diccionario para almacenar el historial de chat por sesión
-# ----------------------------------------------------------
-
-chat_engine = None  # Inicializa el motor de chat como None
+# Almacenamiento en memoria para el historial de chat
+chat_histories: Dict[str, List[Dict[str, str]]] = {}
+chat_engine = None
 
 class ChatRequest(BaseModel):
-    query: str  # Campo para la consulta del usuario
-    session_id: str  # Campo para el ID de sesión
+    query: str
+    session_id: str
 
 class TribalRequest(BaseModel):
-    query: str  # Campo para la consulta del usuario
-    session_id: str  # Campo para el ID de sesión
-    user_data: dict = {}  # Datos del usuario desde political referrals (opcional)
+    query: str
+    session_id: str
+    user_data: dict = {}
+
+class AnalyticsRequest(BaseModel):
+    query: str
+    session_id: str
+    user_data: dict = {}
 
 class TribalResponse(BaseModel):
-    is_tribal_request: bool  # Si es una solicitud de tribu
-    ai_response: str  # Respuesta procesada por IA
-    referral_code: str = ""  # Código de referido (si aplica)
-    user_name: str = ""  # Nombre del usuario (si aplica)
-    should_generate_link: bool = False  # Si debe generar link en political referrals
+    is_tribal_request: bool
+    ai_response: str
+    referral_code: str = ""
+    user_name: str = ""
+    should_generate_link: bool = False
 
 @app.on_event("startup")
 async def startup_event():
-    """
-    Función que se ejecuta al iniciar la aplicación FastAPI.
-    Carga el índice de LlamaIndex y configura el motor de conversación.
-    """
+    """Inicializa el chatbot al arrancar la aplicación"""
     global chat_engine
     print(f"Buscando índice en: {INDEX_DIR}...")
-    if not os.path.exists(INDEX_DIR):  # Verifica si el directorio del índice existe
+    if not os.path.exists(INDEX_DIR):
         print(f"ERROR: El directorio del índice '{INDEX_DIR}' no existe.")
         print("Por favor, ejecuta 'python prepare_data.py' primero para crear el índice.")
         raise RuntimeError(f"El directorio del índice '{INDEX_DIR}' no existe.")
 
     try:
-        storage_context = StorageContext.from_defaults(persist_dir=INDEX_DIR)  # Crea un contexto de almacenamiento
+        storage_context = StorageContext.from_defaults(persist_dir=INDEX_DIR)
         
-        llm = Gemini(model=LLM_MODEL)  # Inicializa el modelo de lenguaje Gemini
-        embed_model = GeminiEmbedding(model="models/embedding-001")  # Inicializa el modelo de embeddings Gemini
+        # Verificar que la API key esté configurada
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise RuntimeError("GOOGLE_API_KEY no está configurada en el archivo .env")
+        
+        print(f"Inicializando modelo: {LLM_MODEL}")
+        llm = Gemini(model_name=LLM_MODEL)
+        
+        embed_model = GeminiEmbedding(model=EMBEDDING_MODEL)
+        print("Modelos inicializados correctamente")
 
-        index = load_index_from_storage(storage_context, llm=llm, embed_model=embed_model)  # Carga el índice desde el almacenamiento
+        index = load_index_from_storage(storage_context, llm=llm, embed_model=embed_model)
 
         response_synthesizer = CompactAndRefine( 
-            text_qa_template=QA_PROMPT,  # Usa el prompt personalizado
+            text_qa_template=QA_PROMPT,
             llm=llm
         )
         
-        retriever = index.as_retriever()  # Crea un recuperador a partir del índice
+        retriever = index.as_retriever()
 
         from llama_index.core.chat_engine.simple import SimpleChatEngine
 
@@ -151,25 +157,22 @@ async def startup_event():
             llm=llm,
             system_prompt="Eres un asistente de IA inteligente y amigable que responde preguntas sobre política colombiana y temas relacionados, incluyendo información sobre tribus políticas."
         )
-        print("Índice cargado y motor de conversación del chatbot listo para usar.")
+        print("✅ Chatbot inicializado correctamente")
     except Exception as e:
         print(f"ERROR al cargar el índice de LlamaIndex o inicializar el chatbot: {e}")
         raise RuntimeError(f"Error al iniciar el chatbot: {e}")
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
-    """
-    Endpoint para enviar una pregunta al chatbot y obtener una respuesta, con memoria conversacional gestionada por el servidor.
-    """
+    """Endpoint para enviar una pregunta al chatbot y obtener una respuesta"""
     global chat_histories 
     if chat_engine is None:
         raise HTTPException(status_code=503, detail="El chatbot no está inicializado. Intenta de nuevo en unos segundos.")
 
     try:
-        print(f"\n--- Nueva Solicitud para Sesión: '{request.session_id}' ---")  # Log para depuración
-        print(f"Pregunta del usuario: \"{request.query}\"")  # Log para depuración
+        print(f"📝 Nueva solicitud - Sesión: {request.session_id[:8]}...")
 
-        current_session_history_dicts = chat_histories.get(request.session_id, [])  # Obtiene el historial de la sesión actual
+        current_session_history_dicts = chat_histories.get(request.session_id, [])
         
         llama_messages_past = []
         if not current_session_history_dicts:
@@ -181,42 +184,34 @@ async def chat(request: ChatRequest):
                 )
             ))
         for msg_dict in current_session_history_dicts:
-            role = MessageRole.USER if msg_dict["role"] == "user" else MessageRole.ASSISTANT  # Determina el rol del mensaje
-            llama_messages_past.append(ChatMessage(role=role, content=msg_dict["content"]))  # Crea un mensaje de chat
+            role = MessageRole.USER if msg_dict["role"] == "user" else MessageRole.ASSISTANT
+            llama_messages_past.append(ChatMessage(role=role, content=msg_dict["content"]))
 
         response = chat_engine.chat(
             request.query,           
-            chat_history=llama_messages_past  # Usa el historial de chat
+            chat_history=llama_messages_past
         )
-        bot_response_content = response.response  # Obtener el contenido de la respuesta
-        # -------------------------------------------------------------------------
+        bot_response_content = response.response
         
-        current_session_history_dicts.append({"role": "user", "content": request.query})  # Añade la consulta al historial
-        current_session_history_dicts.append({"role": "assistant", "content": bot_response_content})  # Añade la respuesta al historial
-        chat_histories[request.session_id] = current_session_history_dicts  # Actualiza el historial de la sesión
+        current_session_history_dicts.append({"role": "user", "content": request.query})
+        current_session_history_dicts.append({"role": "assistant", "content": bot_response_content})
+        chat_histories[request.session_id] = current_session_history_dicts
         
-        print(f"Historial ACTUALIZADO para Sesión '{request.session_id}': {chat_histories[request.session_id]}")  # Log para depuración
-        print(f"Respuesta generada para Sesión '{request.session_id}': \"{bot_response_content}\"")  # Log para depuración
-        return {"response": {"response": bot_response_content}}  # Envuelve la respuesta en un dict con clave "response"
-        # ---------------------------------------------------------------------
+        print(f"✅ Respuesta generada - Sesión: {request.session_id[:8]}...")
+        return {"response": {"response": bot_response_content}}
     except Exception as e:
         print(f"Error al procesar la pregunta para sesión '{request.session_id}': {e}")
         raise HTTPException(status_code=500, detail=f"Ocurrió un error al procesar tu pregunta: {e}")
 
 @app.post("/tribal-analysis", response_model=TribalResponse)
 async def analyze_tribal_request(request: TribalRequest):
-    """
-    Endpoint especializado para analizar consultas sobre tribus y proporcionar respuestas inteligentes.
-    Este endpoint puede ser llamado desde political referrals para procesar consultas de tribus con IA.
-    """
+    """Endpoint especializado para analizar consultas sobre tribus"""
     global chat_engine
     if chat_engine is None:
         raise HTTPException(status_code=503, detail="El chatbot no está inicializado. Intenta de nuevo en unos segundos.")
 
     try:
-        print(f"\n--- Análisis de Tribu para Sesión: '{request.session_id}' ---")
-        print(f"Consulta: \"{request.query}\"")
-        print(f"Datos del usuario: {request.user_data}")
+        print(f"🔍 Análisis de tribu - Sesión: {request.session_id[:8]}...")
 
         # Detectar si es una solicitud de tribu
         is_tribal = is_tribal_request(request.query)
@@ -278,9 +273,7 @@ async def analyze_tribal_request(request: TribalRequest):
         raise HTTPException(status_code=500, detail=f"Error al procesar la consulta: {e}")
 
 def is_tribal_request(query: str) -> bool:
-    """
-    Detecta si una consulta es sobre tribus usando los patrones definidos.
-    """
+    """Detecta si una consulta es sobre tribus usando los patrones definidos"""
     query_lower = query.lower()
     
     # Patrones de detección de tribus (las mismas variaciones del prompt)
@@ -324,4 +317,104 @@ def is_tribal_request(query: str) -> bool:
 
 @app.get("/")
 async def root():
-    return {"message": "El Chatbot de Política y Tribus API está funcionando. Usa /chat para enviar preguntas."}  # Mensaje de bienvenida para la raíz de la API
+    return {"message": "El Chatbot de Política y Tribus API está funcionando. Usa /chat para enviar preguntas."}
+
+@app.post("/analytics-chat")
+async def analytics_chat(request: AnalyticsRequest):
+    """Endpoint para manejar consultas de analytics con datos del usuario"""
+    try:
+        print(f"📊 Analytics Chat - Sesión: {request.session_id[:8]}...")
+        
+        # Extraer datos de analytics
+        analytics_data = request.user_data.get("analytics_data", {})
+        
+        if not analytics_data:
+            # Fallback si no hay datos de analytics
+            response = chat_engine.chat(request.query)
+            return {"response": {"response": response.response}}
+        
+        # Construir prompt con datos de analytics
+        analytics_prompt = build_analytics_prompt(request.query, analytics_data)
+        
+        # Generar respuesta con IA
+        response = chat_engine.chat(analytics_prompt)
+        
+        return {"response": {"response": response.response}}
+        
+    except Exception as e:
+        print(f"Error en analytics chat: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al procesar analytics: {e}")
+
+def build_analytics_prompt(query: str, analytics_data: dict) -> str:
+    """Construye un prompt personalizado con datos de analytics"""
+    # Extraer datos de analytics
+    user_name = analytics_data.get("name", "Voluntario")
+    ranking = analytics_data.get("ranking", {})
+    region = analytics_data.get("region", {})
+    city = analytics_data.get("city", {})
+    referrals = analytics_data.get("referrals", {})
+    
+    # Construir contexto de analytics
+    analytics_context = f"""
+    DATOS DE RENDIMIENTO DEL USUARIO:
+    - Nombre: {user_name}
+    
+    RANKING:
+    - Hoy: Posición #{ranking.get('today', {}).get('position', 'N/A')} con {ranking.get('today', {}).get('points', 0)} puntos
+    - Esta semana: Posición #{ranking.get('week', {}).get('position', 'N/A')} con {ranking.get('week', {}).get('points', 0)} puntos
+    - Este mes: Posición #{ranking.get('month', {}).get('position', 'N/A')} con {ranking.get('month', {}).get('points', 0)} puntos
+    
+    POSICIÓN GEOGRÁFICA:
+    - Ciudad: Posición #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)} participantes
+    - Colombia: Posición #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)} participantes
+    
+    REFERIDOS:
+    - Total invitados: {referrals.get('totalInvited', 0)}
+    - Voluntarios activos: {referrals.get('activeVolunteers', 0)}
+    - Referidos este mes: {referrals.get('referralsThisMonth', 0)}
+    - Tasa de conversión: {referrals.get('conversionRate', 0)}%
+    - Puntos por referidos: {referrals.get('referralPoints', 0)}
+    """
+    
+    # Prompt personalizado para IA Política
+    prompt = f"""
+    Eres una IA política especializada en análisis de campañas. El usuario te está preguntando sobre su rendimiento en la campaña política.
+    
+    {analytics_context}
+    
+    CONSULTA DEL USUARIO: "{query}"
+    
+    ⚠️ REGLA CRÍTICA: El usuario está en la ciudad de {user_name} (Bogotá). 
+    SIEMPRE responde con sus datos reales de Bogotá, NO importa si pregunta sobre Medellín, 
+    Antioquia o cualquier otra ciudad. Los datos reales son:
+    - Ciudad: Bogotá (posición #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)})
+    - Colombia: posición #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)}
+    
+    NUNCA menciones Medellín o Antioquia en la respuesta, solo Bogotá y Colombia.
+    
+    INSTRUCCIONES:
+    1. Responde con un estilo motivacional y cercano propio de una campaña política
+    2. Usa los datos de analytics para dar respuestas específicas y personalizadas
+    3. Celebra los logros del usuario
+    4. Motiva para mejorar en áreas donde puede crecer
+    5. Mantén un tono político pero empático
+    6. Si no tienes datos específicos, usa un mensaje motivacional general
+    7. Responde de manera directa y útil
+    8. IMPORTANTE: Mantén las respuestas CORTAS y CONCISAS (máximo 2-3 párrafos)
+    9. Ve directo al punto, sin repeticiones
+    10. Usa frases cortas y directas
+    11. No seas redundante con la información
+    12. CRÍTICO: Usa SIEMPRE los datos reales del usuario, NO interpretes la pregunta literalmente
+    13. Si el usuario pregunta sobre otra ciudad, responde con sus datos reales de su ciudad actual
+    
+    EJEMPLOS DE RESPUESTAS CORTAS:
+    - "¡Excelente! Posición #{ranking.get('today', {}).get('position', 'N/A')} hoy con {ranking.get('today', {}).get('points', 0)} puntos. ¡Sigue así!"
+    - "En Bogotá: #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)}. ¡Casi en el podio!"
+    - "En Colombia: #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)}. ¡Vamos por más!"
+    - "Referidos: {referrals.get('totalInvited', 0)} invitados. ¡Es hora de expandir tu red!"
+    - "En Bogotá estás #3 de 4. ¡Casi en el podio! En Colombia #14 de 15."
+    
+    Responde como una IA política especializada:
+    """
+    
+    return prompt
