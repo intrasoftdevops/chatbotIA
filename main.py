@@ -141,19 +141,34 @@ async def startup_event():
 @app.post("/chat")
 async def chat(request: ChatRequest):
     """Endpoint para enviar una pregunta al chatbot y obtener una respuesta"""
-    global chat_histories, query_engine
-    if query_engine is None:
+    global chat_histories 
+    if chat_engine is None:
         raise HTTPException(status_code=503, detail="El chatbot no está inicializado. Intenta de nuevo en unos segundos.")
 
     try:
         print(f"📝 Nueva solicitud - Sesión: {request.session_id[:8]}...")
 
-        # Usar directamente el query engine con prompt personalizado para respuestas más precisas
-        response = query_engine.query(request.query)
+        current_session_history_dicts = chat_histories.get(request.session_id, [])
+        
+        llama_messages_past = []
+        if not current_session_history_dicts:
+            llama_messages_past.append(ChatMessage(
+                role=MessageRole.SYSTEM,
+                content=(
+                    "Eres un asistente de IA que ayuda con preguntas sobre la campaña política de Daniel Quintero. "
+                    "Usa información específica de las FAQs de la campaña cuando esté disponible. Responde siempre en español."
+                )
+            ))
+        for msg_dict in current_session_history_dicts:
+            role = MessageRole.USER if msg_dict["role"] == "user" else MessageRole.ASSISTANT
+            llama_messages_past.append(ChatMessage(role=role, content=msg_dict["content"]))
+
+        response = chat_engine.chat(
+            request.query,           
+            chat_history=llama_messages_past
+        )
         bot_response_content = response.response
         
-        # Mantener historial para futuras funcionalidades
-        current_session_history_dicts = chat_histories.get(request.session_id, [])
         current_session_history_dicts.append({"role": "user", "content": request.query})
         current_session_history_dicts.append({"role": "assistant", "content": bot_response_content})
         chat_histories[request.session_id] = current_session_history_dicts
