@@ -22,59 +22,34 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "models/embedding-001")
 
 # --- PROMPT PERSONALIZADO PARA RESPUESTAS GENERALES Y TRIBALES ---
 QA_PROMPT_TMPL = (
-    "Eres un asistente de IA inteligente y amigable que responde preguntas sobre política colombiana y temas relacionados.\n"
+    "Eres un asistente de IA que ayuda con preguntas sobre campañas políticas y temas relacionados.\n"
     "\n"
-    "INSTRUCCIONES GENERALES:\n"
-    "- Responde de manera clara, honesta y empática\n"
-    "- Usa un tono conversacional y cercano\n"
-    "- Si no tienes información específica, indícalo de manera transparente\n"
-    "- Mantén un enfoque constructivo y orientado a soluciones\n"
+    "INSTRUCCIONES PRIORITARIAS:\n"
+    "1. SIEMPRE responde en ESPAÑOL\n"
+    "2. Si encuentras información específica en el contexto proporcionado, úsala PRIORITARIAMENTE\n"
+    "3. Las FAQs del contexto contienen respuestas oficiales de la campaña - úsalas textualmente cuando sea relevante\n"
+    "4. Mantén un tono conversacional y cercano\n"
+    "5. Si no hay información específica en el contexto, puedes dar información general sobre política colombiana\n"
     "\n"
-    "FUNCIONALIDAD ESPECIAL PARA PREGUNTAS SOBRE LA TRIBU:\n"
-    "- Si detectas que el usuario pregunta sobre 'tribu', 'link de tribu', 'enlace de tribu', 'cómo entrar a la tribu', etc.\n"
-    "- Responde con información sobre el sistema de tribus políticas\n"
+    "FUNCIONALIDAD ESPECIAL PARA PREGUNTAS SOBRE TRIBUS/REFERIDOS:\n"
+    "- Si detectas que el usuario pregunta sobre 'tribu', 'link de tribu', 'enlace de tribu', 'referidos', etc.\n"
     "- Explica que las tribus son grupos de voluntarios organizados por región\n"
     "- Menciona que los enlaces se comparten personalmente por los coordinadores\n"
     "- Ofrece ayuda para contactar al coordinador local\n"
     "\n"
-    "EJEMPLOS DE RESPUESTAS PARA TRIBUS:\n"
-    "- 'Las tribus son grupos de voluntarios organizados por región. Para obtener el enlace de tu tribu específica, necesitas contactar a tu coordinador local.'\n"
-    "- 'El enlace de tu tribu se comparte personalmente por tu coordinador. ¿En qué ciudad vives? Te puedo ayudar a contactar al coordinador de tu zona.'\n"
-    "- 'Para acceder a tu tribu, necesitas el enlace personal que te comparte tu coordinador. ¿Ya tienes contacto con algún coordinador en tu ciudad?'\n"
-    "\n"
-    "PATRONES DE DETECCIÓN DE TRIBUS:\n"
-    "- 'Mándame el link de mi tribu', 'Envíame el link de mi tribu', '¿Me puedes mandar el enlace de mi tribu?'\n"
-    "- 'Pásame el link de la tribu', '¿Dónde está el link de mi tribu?', 'Mandame el link d mi tribu'\n"
-    "- 'Mandame el link mi tribu', 'Pasame el link d mi tribu', 'Pasame link tribu', 'Mandame link tribu'\n"
-    "- 'Enlace tribu porfa', 'Link tribu ya', 'Dame el enlace de mi grupo', 'Pásame el link del grupo'\n"
-    "- '¿Dónde está el grupo?', '¿Cómo entro a la tribu?', '¿Cuál es el link de ingreso a la tribu?'\n"
-    "- 'Parce, mándame el link de mi tribu', 'Oe, ¿tenés el enlace de la tribu?', 'Mijo, pásame el link del parche'\n"
-    "- 'Mija, pásame el link del parche', 'Necesito el link pa entrar a mi tribu', '¿Dónde está el bendito link de la tribu?'\n"
-    "- 'Hágame el favor y me manda el link de la tribu', '¿Y el enlace pa unirme?', 'Manda ese link pues'\n"
-    "- 'Quiero entrar a mi tribu', 'Cómo ingreso a mi tribu', 'No encuentro el link de mi tribu'\n"
-    "- 'Perdí el link de la tribu', 'Ayúdame con el link de la tribu', 'Me puedes enviar el link de mi grupo'\n"
-    "- 'Necesito volver a entrar a mi tribu', 'Como es que invito gente?', 'Dame el link'\n"
-    "- 'Mándame el link de mis referidos', 'Envíame el enlace de mis referidos', '¿Me puedes mandar el link de referidos?'\n"
-    "- 'Pásame el link de referidos', '¿Dónde está mi enlace de referidos?', 'Mandame el link d mis referidos'\n"
-    "- 'Dame el enlace de referidos', 'Pásame el enlace de referidos', 'Link de referidos porfa'\n"
-    "- '¿Cómo obtengo mi link de referidos?', '¿Dónde está mi link de referidos?', 'Necesito mi enlace de referidos'\n"
-    "- 'Parce, mándame el link de mis referidos', 'Oe, ¿tenés mi enlace de referidos?', 'Mijo, pásame el link de referidos'\n"
-    "- 'Perdí mi link de referidos', 'Ayúdame con mi enlace de referidos', 'No encuentro mi link de referidos'\n"
-    "- 'Quiero mi link de referidos', 'Cómo obtengo mi enlace de referidos', 'Dame mi link de referidos'\n"
-    "\n"
-    "Contexto disponible:\n"
+    "Contexto de la campaña (FAQs oficiales):\n"
     "---------------------\n"
     "{context_str}\n"
     "---------------------\n"
     "\n"
-    "Pregunta o inquietud del usuario: {query_str}\n"
+    "Pregunta del usuario: {query_str}\n"
     "\n"
-    "Genera una respuesta que:\n"
-    "- Sea clara y útil\n"
-    "- Mantenga un tono amigable\n"
-    "- Si es sobre tribus, incluya información sobre el sistema y cómo obtener acceso\n"
-    "- Si es sobre otros temas políticos, use el contexto disponible\n"
-    "- Invite a seguir la conversación si es apropiado\n"
+    "INSTRUCCIONES DE RESPUESTA:\n"
+    "- Si la pregunta coincide con alguna FAQ del contexto, usa esa respuesta como base\n"
+    "- Adapta la respuesta para que sea natural y conversacional\n"
+    "- Si es sobre tribus/referidos, incluye información sobre el sistema\n"
+    "- Mantén siempre el tono amigable y político\n"
+    "- Responde SIEMPRE en español\n"
     "\n"
     "Respuesta:"
 )
@@ -90,6 +65,7 @@ app = FastAPI(
 # Almacenamiento en memoria para el historial de chat
 chat_histories: Dict[str, List[Dict[str, str]]] = {}
 chat_engine = None
+query_engine = None
 
 class ChatRequest(BaseModel):
     query: str
@@ -115,7 +91,7 @@ class TribalResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     """Inicializa el chatbot al arrancar la aplicación"""
-    global chat_engine
+    global chat_engine, query_engine
     print(f"Buscando índice en: {INDEX_DIR}...")
     if not os.path.exists(INDEX_DIR):
         print(f"ERROR: El directorio del índice '{INDEX_DIR}' no existe.")
@@ -155,7 +131,7 @@ async def startup_event():
         chat_engine = SimpleChatEngine.from_defaults(
             query_engine=query_engine,
             llm=llm,
-            system_prompt="Eres un asistente de IA inteligente y amigable que responde preguntas sobre política colombiana y temas relacionados, incluyendo información sobre tribus políticas."
+            system_prompt="Eres un asistente de IA que ayuda con preguntas sobre campañas políticas. Usa la información específica de las FAQs cuando esté disponible y responde siempre en español."
         )
         print("✅ Chatbot inicializado correctamente")
     except Exception as e:
@@ -165,34 +141,19 @@ async def startup_event():
 @app.post("/chat")
 async def chat(request: ChatRequest):
     """Endpoint para enviar una pregunta al chatbot y obtener una respuesta"""
-    global chat_histories 
-    if chat_engine is None:
+    global chat_histories, query_engine
+    if query_engine is None:
         raise HTTPException(status_code=503, detail="El chatbot no está inicializado. Intenta de nuevo en unos segundos.")
 
     try:
         print(f"📝 Nueva solicitud - Sesión: {request.session_id[:8]}...")
 
-        current_session_history_dicts = chat_histories.get(request.session_id, [])
-        
-        llama_messages_past = []
-        if not current_session_history_dicts:
-            llama_messages_past.append(ChatMessage(
-                role=MessageRole.SYSTEM,
-                content=(
-                    "Eres un asistente de IA inteligente y amigable que responde preguntas sobre política colombiana. "
-                    "Tienes conocimiento especial sobre el sistema de tribus políticas y puedes ayudar con información sobre cómo acceder a ellas."
-                )
-            ))
-        for msg_dict in current_session_history_dicts:
-            role = MessageRole.USER if msg_dict["role"] == "user" else MessageRole.ASSISTANT
-            llama_messages_past.append(ChatMessage(role=role, content=msg_dict["content"]))
-
-        response = chat_engine.chat(
-            request.query,           
-            chat_history=llama_messages_past
-        )
+        # Usar directamente el query engine con prompt personalizado para respuestas más precisas
+        response = query_engine.query(request.query)
         bot_response_content = response.response
         
+        # Mantener historial para futuras funcionalidades
+        current_session_history_dicts = chat_histories.get(request.session_id, [])
         current_session_history_dicts.append({"role": "user", "content": request.query})
         current_session_history_dicts.append({"role": "assistant", "content": bot_response_content})
         chat_histories[request.session_id] = current_session_history_dicts
