@@ -121,17 +121,15 @@ async def startup_event():
         
         retriever = index.as_retriever()
 
-        from llama_index.core.chat_engine.simple import SimpleChatEngine
-
         query_engine = RetrieverQueryEngine(
             retriever=retriever,
             response_synthesizer=response_synthesizer
         )
 
-        chat_engine = SimpleChatEngine.from_defaults(
-            query_engine=query_engine,
+        chat_engine = ContextChatEngine.from_defaults(
+            retriever=retriever,
             llm=llm,
-            system_prompt="Eres un asistente de IA que ayuda con preguntas sobre campañas políticas. Usa la información específica de las FAQs cuando esté disponible y responde siempre en español."
+            system_prompt="Eres un asistente de IA que ayuda con preguntas sobre la campaña política de Daniel Quintero. Usa la información específica de las FAQs de la campaña cuando esté disponible y responde siempre en español."
         )
         print("✅ Chatbot inicializado correctamente")
     except Exception as e:
