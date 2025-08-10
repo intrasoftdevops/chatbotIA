@@ -39,6 +39,13 @@ class TestChatbotAPI:
         assert response.status_code == 503
         assert "no está inicializado" in response.json()["detail"]
 
+    def test_health_endpoint_structure(self, client):
+        """Test that health endpoint has expected structure"""
+        response = client.get("/")
+        assert response.status_code == 200
+        assert isinstance(response.json(), dict)
+        assert "message" in response.json()
+
 
 class TestTribalDetection:
     """Test suite for tribal request detection functionality"""
@@ -151,13 +158,6 @@ class TestAnalyticsPrompt:
 
 class TestHealthChecks:
     """Test suite for health and monitoring endpoints"""
-    
-    def test_health_endpoint_structure(self, client):
-        """Test that health endpoint has expected structure"""
-        response = client.get("/")
-        assert response.status_code == 200
-        assert isinstance(response.json(), dict)
-        assert "message" in response.json()
 
 
 if __name__ == "__main__":
