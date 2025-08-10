@@ -27,7 +27,7 @@ QA_PROMPT_TMPL = (
     "INSTRUCCIONES PRIORITARIAS:\n"
     "1. SIEMPRE responde en ESPAÑOL\n"
     "2. Si encuentras información específica en el contexto proporcionado, úsala PRIORITARIAMENTE\n"
-    "3. Las FAQs del contexto contienen respuestas oficiales de la campaña - úsalas textualmente cuando sea relevante\n"
+    "3. El contexto contiene respuestas oficiales de la campaña - úsalas textualmente cuando sea relevante\n"
     "4. Mantén un tono conversacional y cercano\n"
     "5. Si no hay información específica en el contexto, puedes dar información general sobre política colombiana\n"
     "\n"
@@ -37,7 +37,7 @@ QA_PROMPT_TMPL = (
     "- Menciona que los enlaces se comparten personalmente por los coordinadores\n"
     "- Ofrece ayuda para contactar al coordinador local\n"
     "\n"
-    "Contexto de la campaña (FAQs oficiales):\n"
+    "Contexto oficial de la campaña:\n"
     "---------------------\n"
     "{context_str}\n"
     "---------------------\n"
@@ -45,7 +45,7 @@ QA_PROMPT_TMPL = (
     "Pregunta del usuario: {query_str}\n"
     "\n"
     "INSTRUCCIONES DE RESPUESTA:\n"
-    "- Si la pregunta coincide con alguna FAQ del contexto, usa esa respuesta como base\n"
+    "- Si la pregunta coincide con información del contexto, usa esa respuesta como base\n"
     "- Adapta la respuesta para que sea natural y conversacional\n"
     "- Si es sobre tribus/referidos, incluye información sobre el sistema\n"
     "- Mantén siempre el tono amigable y político\n"
@@ -129,7 +129,7 @@ async def startup_event():
         chat_engine = ContextChatEngine.from_defaults(
             retriever=retriever,
             llm=llm,
-            system_prompt="Eres un asistente de IA que ayuda con preguntas sobre la campaña política de Daniel Quintero. Usa la información específica de las FAQs de la campaña cuando esté disponible y responde siempre en español."
+            system_prompt="Eres un asistente de IA que ayuda con preguntas sobre la campaña política de Daniel Quintero. Usa la información del contexto oficial de la campaña cuando esté disponible y responde siempre en español. No menciones fuentes o archivos explícitos."
         )
         print("✅ Chatbot inicializado correctamente")
     except Exception as e:
@@ -154,7 +154,8 @@ async def chat(request: ChatRequest):
                 role=MessageRole.SYSTEM,
                 content=(
                     "Eres un asistente de IA que ayuda con preguntas sobre la campaña política de Daniel Quintero. "
-                    "Usa información específica de las FAQs de la campaña cuando esté disponible. Responde siempre en español."
+                    "Usa la información del contexto oficial de la campaña cuando esté disponible y responde siempre en español. "
+                    "No reveles ni menciones fuentes, archivos o 'FAQs' explícitamente."
                 )
             ))
         for msg_dict in current_session_history_dicts:
