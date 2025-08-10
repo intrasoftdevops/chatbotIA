@@ -1,0 +1,19 @@
+# Ignorar el entorno virtual de Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorar archivos de configuración de IDE y logs
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# Ignorar el historial de Git y otros archivos de versionado
+.git/
+.gitignore
+
+# Ignorar archivos de cache de pytest
+.pytest_cache/ 
