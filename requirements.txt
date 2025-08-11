@@ -1,21 +1,17 @@
-# FastAPI y dependencias básicas
+# FastAPI y dependencias básicas (versiones compatibles)
 fastapi==0.104.1
 uvicorn==0.24.0
 python-dotenv==1.0.0
-pydantic==1.10.13
+pydantic>=2.8.0,<3.0.0
 
-# LlamaIndex y dependencias compatibles
-llama-index-core==0.10.1
-llama-index-llms-gemini==0.1.3
-llama-index-embeddings-gemini==0.1.2
-llama-index-readers-file==0.1.4
+# LlamaIndex y dependencias compatibles (versiones que funcionan juntas)
+llama-index-core>=0.13.0
+llama-index-llms-gemini>=0.1.3
+llama-index-embeddings-gemini>=0.1.2
+llama-index-readers-file>=0.1.4
 
-# Dependencias transitivas para compatibilidad (evita ModuleNotFoundError)
-llama-index-llms-openai==0.5.2
-llama-index-agent-openai==0.4.12
-
-# Google AI
-google-generativeai==0.3.2
+# Google AI (versión actualizada para compatibilidad)
+google-generativeai>=0.5.2
 
 # Testing dependencies
 pytest==7.4.3
