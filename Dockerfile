@@ -16,8 +16,14 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
+# Copiar datos PRIMERO
+COPY data/ ./data/
+
 # Copiar el resto de la aplicación
 COPY . .
+
+# Generar el índice ANTES de iniciar
+RUN python prepare_data.py
 
 # Exponer el puerto en el que correrá la aplicación
 EXPOSE 8000
