@@ -345,75 +345,37 @@ def build_analytics_prompt(query: str, analytics_data: dict, user_data: dict) ->
     """Construye un prompt personalizado con datos de analytics"""
     # Extraer datos de analytics
     user_name = analytics_data.get("name", "Voluntario")
-    ranking = analytics_data.get("ranking", {})
-    region = analytics_data.get("region", {})
     city = analytics_data.get("city", {})
-    referrals = analytics_data.get("referrals", {})
+    region = analytics_data.get("region", {})
 
     # Obtener la ciudad real del usuario desde user_data
     city_name = user_data.get("city", "tu ciudad")
 
-    # Construir contexto de analytics
-    analytics_context = f"""
-    DATOS DE RENDIMIENTO DEL USUARIO:
-    - Nombre: {user_name}
-    
-    RANKING:
-    - Hoy: Posición #{ranking.get('today', {}).get('position', 'N/A')} con {ranking.get('today', {}).get('points', 0)} puntos
-    - Esta semana: Posición #{ranking.get('week', {}).get('position', 'N/A')} con {ranking.get('week', {}).get('points', 0)} puntos
-    - Este mes: Posición #{ranking.get('month', {}).get('position', 'N/A')} con {ranking.get('month', {}).get('points', 0)} puntos
-    
-    POSICIÓN GEOGRÁFICA:
-    - Ciudad ({city_name}): Posición #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)} participantes
-    - Colombia: Posición #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)} participantes
-    
-    REFERIDOS:
-    - Total invitados: {referrals.get('totalInvited', 0)}
-    - Voluntarios activos: {referrals.get('activeVolunteers', 0)}
-    - Referidos este mes: {referrals.get('referralsThisMonth', 0)}
-    - Tasa de conversión: {referrals.get('conversionRate', 0)}%
-    - Puntos por referidos: {referrals.get('referralPoints', 0)}
-    """
-    
-    # Prompt personalizado para IA Política
+    # Prompt simplificado - solo posición básica
     prompt = f"""
-    Eres una IA política especializada en análisis de campañas. El usuario te está preguntando sobre su rendimiento en la campaña política.
+    Eres una IA política especializada en campañas. El usuario te está preguntando sobre su posición en la campaña.
     
-    {analytics_context}
+    DATOS DEL USUARIO:
+    - Nombre: {user_name}
+    - Ciudad: {city_name}
+    - Posición en {city_name}: #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)} participantes
+    - Posición en Colombia: #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)} participantes
     
     CONSULTA DEL USUARIO: "{query}"
     
-    ⚠️ REGLA CRÍTICA: El usuario está en la ciudad de {city_name}. 
-    SIEMPRE responde con sus datos reales de {city_name}. NO respondas sobre otras ciudades.
-    Los datos reales son:
-    - Ciudad: {city_name} (posición #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)})
-    - Colombia: posición #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)}
-    
-    NUNCA menciones otras ciudades en la respuesta, solo {city_name} y Colombia.
-    
     INSTRUCCIONES:
-    1. Responde con un estilo motivacional y cercano propio de una campaña política
-    2. Usa los datos de analytics para dar respuestas específicas y personalizadas
-    3. Celebra los logros del usuario
-    4. Motiva para mejorar en áreas donde puede crecer
-    5. Mantén un tono político pero empático
-    6. Si no tienes datos específicos, usa un mensaje motivacional general
-    7. Responde de manera directa y útil
-    8. IMPORTANTE: Mantén las respuestas CORTAS y CONCISAS (máximo 2-3 párrafos)
-    9. Ve directo al punto, sin repeticiones
-    10. Usa frases cortas y directas
-    11. No seas redundante con la información
-    12. CRÍTICO: Usa SIEMPRE los datos reales del usuario, NO interpretes la pregunta literalmente
-    13. Si el usuario pregunta sobre otra ciudad, responde con sus datos reales de su ciudad actual
+    1. Responde SOLO con la posición del usuario en su ciudad y en Colombia
+    2. Mantén las respuestas MUY CORTAS (máximo 2 líneas)
+    3. Usa un tono motivacional pero directo
+    4. NO incluyas análisis complejos ni métricas adicionales
+    5. NO menciones otras ciudades
+    6. Ve directo al punto: posición en ciudad y posición en Colombia
     
-    EJEMPLOS DE RESPUESTAS CORTAS:
-    - "¡Excelente! Posición #{ranking.get('today', {}).get('position', 'N/A')} hoy con {ranking.get('today', {}).get('points', 0)} puntos. ¡Sigue así!"
-    - "En {city_name}: #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)}. ¡Casi en el podio!"
-    - "En Colombia: #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)}. ¡Vamos por más!"
-    - "Referidos: {referrals.get('totalInvited', 0)} invitados. ¡Es hora de expandir tu red!"
-    - "En {city_name} estás #3 de 4. ¡Casi en el podio! En Colombia #14 de 15."
+    EJEMPLOS DE RESPUESTAS:
+    - "En {city_name} estás #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)}. En Colombia #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)}."
+    - "Posición #{city.get('position', 'N/A')} en {city_name}, #{region.get('position', 'N/A')} en Colombia. ¡Sigue así!"
     
-    Responde como una IA política especializada:
+    Responde de forma directa y concisa:
     """
     
     return prompt
