@@ -330,7 +330,7 @@ async def analytics_chat(request: AnalyticsRequest):
             return {"response": {"response": response.response}}
         
         # Construir prompt con datos de analytics
-        analytics_prompt = build_analytics_prompt(request.query, analytics_data)
+        analytics_prompt = build_analytics_prompt(request.query, analytics_data, request.user_data)
         
         # Generar respuesta con IA
         response = chat_engine.chat(analytics_prompt)
@@ -341,7 +341,7 @@ async def analytics_chat(request: AnalyticsRequest):
         print(f"Error en analytics chat: {e}")
         raise HTTPException(status_code=500, detail=f"Error al procesar analytics: {e}")
 
-def build_analytics_prompt(query: str, analytics_data: dict) -> str:
+def build_analytics_prompt(query: str, analytics_data: dict, user_data: dict) -> str:
     """Construye un prompt personalizado con datos de analytics"""
     # Extraer datos de analytics
     user_name = analytics_data.get("name", "Voluntario")
@@ -351,7 +351,7 @@ def build_analytics_prompt(query: str, analytics_data: dict) -> str:
     referrals = analytics_data.get("referrals", {})
 
     # Obtener la ciudad real del usuario desde user_data
-    city_name = request.user_data.get("city", "tu ciudad")
+    city_name = user_data.get("city", "tu ciudad")
 
     # Construir contexto de analytics
     analytics_context = f"""
