@@ -11,3 +11,6 @@ storage/
 
 # macOS
 .DS_Store
+
+# Guías de despliegue (documentación interna)
+DEPLOYMENT_GUIDE.md
