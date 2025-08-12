@@ -25,6 +25,9 @@ COPY . .
 # Generar el índice ANTES de iniciar
 RUN python prepare_data.py
 
+# Verificar que el índice se generó correctamente
+RUN ls -la storage/ && echo "Índice generado exitosamente"
+
 # Exponer el puerto en el que correrá la aplicación
 EXPOSE 8000
 
