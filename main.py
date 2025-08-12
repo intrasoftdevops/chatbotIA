@@ -350,7 +350,8 @@ def build_analytics_prompt(query: str, analytics_data: dict) -> str:
     city = analytics_data.get("city", {})
     referrals = analytics_data.get("referrals", {})
 
-    city_name = "Bogotá"  # Aseguramos que city_name esté definido
+    # Obtener la ciudad real del usuario desde user_data
+    city_name = request.user_data.get("city", "tu ciudad")
 
     # Construir contexto de analytics
     analytics_context = f"""
