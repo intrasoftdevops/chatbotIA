@@ -1,8 +1,9 @@
 # FastAPI y dependencias básicas (versiones compatibles)
 fastapi==0.104.1
-uvicorn==0.24.0
+uvicorn[standard]==0.24.0
 python-dotenv==1.0.0
 pydantic>=2.8.0,<3.0.0
+httptools>=0.2.0  # Mejor rendimiento HTTP para Uvicorn
 
 # LlamaIndex y dependencias compatibles (versiones que funcionan juntas)
 llama-index-core>=0.13.0
