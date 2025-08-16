@@ -37,7 +37,7 @@ RUN python prepare_data.py
 RUN ls -la storage/ && echo "Índice generado exitosamente"
 
 # Exponer el puerto en el que correrá la aplicación
-EXPOSE 8000
+EXPOSE 8080
 
 # Comando para ejecutar la aplicación
 CMD ["python", "run_server.py"] 
