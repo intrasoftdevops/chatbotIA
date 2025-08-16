@@ -80,7 +80,10 @@ QA_PROMPT = PromptTemplate(QA_PROMPT_TMPL) # Crea una plantilla de prompt a part
 app = FastAPI(
     title="Chatbot de Política y Tribus (RAG con Gemini)",
     description="API para interactuar con un chatbot que responde preguntas sobre política colombiana, documentos políticos y el sistema de tribus, con memoria conversacional (gestionada por el servidor).",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
 # Almacenamiento en memoria para el historial de chat
