@@ -9,7 +9,5 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=port,
-        reload=True,
-        reload_excludes=["venv/*", "*/venv/*", "**/venv/**"],
-        reload_dirs=["."]
+        reload=True
     ) 
