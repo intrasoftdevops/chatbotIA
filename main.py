@@ -199,8 +199,7 @@ async def chat(request: ChatRequest):
         # Optimizar la llamada al chat engine para mejor rendimiento
         response = chat_engine.chat(
             request.query,           
-            chat_history=llama_messages_past,
-            response_mode="compact"  # Usar modo compacto para respuestas más rápidas
+            chat_history=llama_messages_past
         )
         bot_response_content = response.response
         
