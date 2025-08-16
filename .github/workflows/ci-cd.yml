@@ -73,6 +73,7 @@ jobs:
         
         # Obtener la API key de GCP Secret Manager para el build
         GOOGLE_API_KEY=$(gcloud secrets versions access latest --secret="gemini-api-key")
+        echo "API Key obtenida: ${GOOGLE_API_KEY:0:20}..."  # Solo mostrar primeros 20 caracteres
         
         # Build y push de la imagen (con API key para generar índice)
         docker build --build-arg GOOGLE_API_KEY="$GOOGLE_API_KEY" -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:$TAG .
