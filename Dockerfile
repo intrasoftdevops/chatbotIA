@@ -7,6 +7,10 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
+# Argumento para la API key durante el build
+ARG GOOGLE_API_KEY
+ENV GOOGLE_API_KEY=$GOOGLE_API_KEY
+
 # Etapa 2: Final - Construir la imagen final
 FROM python:3.11-slim
 
@@ -22,7 +26,7 @@ COPY data/ ./data/
 # Copiar el resto de la aplicación
 COPY . .
 
-# Generar el índice ANTES de iniciar
+# Generar el índice ANTES de iniciar (con API key del build)
 RUN python prepare_data.py
 
 # Verificar que el índice se generó correctamente
