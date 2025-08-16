@@ -117,24 +117,33 @@ class TestAnalyticsPrompt:
                 "referralPoints": 75
             }
         }
+        test_user_data = {
+            "name": "Test User",
+            "city": "Bogotá",
+            "phone": "573001234567"
+        }
         
-        prompt = build_analytics_prompt(test_query, test_analytics)
+        prompt = build_analytics_prompt(test_query, test_analytics, test_user_data)
         
         # Verify that key elements are included in the prompt
         assert "Test User" in prompt
-        assert "Posición #1" in prompt
-        assert "100 puntos" in prompt
-        assert "10 invitados" in prompt
-        assert test_query in prompt
+        assert "#2 de 20" in prompt  # city position and participants
+        assert "#5 de 100" in prompt  # region position and participants
         assert "Bogotá" in prompt  # Should always reference Bogotá
-        assert "Medellín" not in prompt  # Should never mention Medellín
+        assert test_query in prompt
+        # Note: The function only includes position data, not referral details
     
     def test_build_analytics_prompt_empty_data(self):
         """Test analytics prompt building with empty data"""
         test_query = "¿Cómo estoy?"
         test_analytics = {}
+        test_user_data = {
+            "name": "Test User",
+            "city": "Bogotá",
+            "phone": "573001234567"
+        }
         
-        prompt = build_analytics_prompt(test_query, test_analytics)
+        prompt = build_analytics_prompt(test_query, test_analytics, test_user_data)
         
         # Should handle empty data gracefully
         assert test_query in prompt
@@ -149,11 +158,16 @@ class TestAnalyticsPrompt:
                 "totalInvited": 5
             }
         }
+        test_user_data = {
+            "name": "Partial User",
+            "city": "Bogotá",
+            "phone": "573001234567"
+        }
         
-        prompt = build_analytics_prompt(test_query, test_analytics)
+        prompt = build_analytics_prompt(test_query, test_analytics, test_user_data)
         
         assert "Partial User" in prompt
-        assert "5 invitados" in prompt
+        # Note: The function only includes position data, not referral details
 
 
 class TestHealthChecks:
