@@ -84,7 +84,8 @@ jobs:
           --memory 1Gi \
           --cpu 1 \
           --max-instances 5 \
-          --set-env-vars ENVIRONMENT=${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+          --set-env-vars ENVIRONMENT=${{ github.ref == 'refs/heads/main' && 'production' || 'development' }} \
+        --set-secrets GOOGLE_API_KEY=gemini-api-key:latest
 
     - name: Show deployment info
       run: |
