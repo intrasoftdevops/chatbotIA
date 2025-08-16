@@ -262,3 +262,4 @@ Bot: "La democracia es un sistema político donde el poder reside en el pueblo..
   - Response: `{"response": {"response": "respuesta personalizada con datos de analytics"}}`
 
 
+# Test commit para activar CI/CD
