@@ -7,7 +7,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-# Argumento para la API key durante el build
+# Argumento para la API key durante el build (en la etapa builder)
 ARG GOOGLE_API_KEY
 ENV GOOGLE_API_KEY=$GOOGLE_API_KEY
 
@@ -15,6 +15,10 @@ ENV GOOGLE_API_KEY=$GOOGLE_API_KEY
 FROM python:3.11-slim
 
 WORKDIR /app
+
+# Argumento para la API key durante el build (en la etapa final)
+ARG GOOGLE_API_KEY
+ENV GOOGLE_API_KEY=$GOOGLE_API_KEY
 
 # Copiar dependencias de la etapa builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
