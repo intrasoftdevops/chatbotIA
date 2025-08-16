@@ -7,7 +7,12 @@ from llama_index.core.node_parser import SentenceSplitter  # Importa el divisor 
 
 load_dotenv()  # Carga las variables de entorno desde el archivo .env
 
-os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")  # Establece la clave de API de Google
+# Solo establecer la variable si existe (para evitar errores en build time)
+google_api_key = os.getenv("GOOGLE_API_KEY")
+if google_api_key:
+    os.environ["GOOGLE_API_KEY"] = google_api_key
+else:
+    print("⚠️ GOOGLE_API_KEY no encontrada. El índice se generará en runtime.")
 
 DATA_DIR = "data"  # Directorio donde se encuentran los documentos
 INDEX_DIR = "storage"  # Directorio donde se guardará el índice
