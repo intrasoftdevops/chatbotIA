@@ -1,0 +1,94 @@
+name: CI/CD Pipeline - chatbotIA
+
+on:
+  push:
+    branches: [ main, dev ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - prod
+
+env:
+  PROJECT_ID: intreasoft-daniel
+  REGION: us-central1
+  IMAGE_NAME: chatbotia
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Setup Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ env.PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+
+    - name: Configure Docker for GCR
+      run: gcloud auth configure-docker
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        python -m pytest tests/ -v
+
+    - name: Build and push Docker image
+      run: |
+        # Determinar el tag basado en la rama
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          TAG="prod-${{ github.sha }}"
+          SERVICE_NAME="chatbotia-prod"
+        else
+          TAG="dev-${{ github.sha }}"
+          SERVICE_NAME="chatbotia-dev"
+        fi
+        
+        echo "Building image with tag: $TAG"
+        echo "Deploying to service: $SERVICE_NAME"
+        
+        # Build y push de la imagen
+        docker build -t gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:$TAG .
+        docker push gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:$TAG
+        
+        # Guardar variables para el deploy
+        echo "TAG=$TAG" >> $GITHUB_ENV
+        echo "SERVICE_NAME=$SERVICE_NAME" >> $GITHUB_ENV
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy ${{ env.SERVICE_NAME }} \
+          --image gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ env.TAG }} \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 1Gi \
+          --cpu 1 \
+          --max-instances 5 \
+          --set-env-vars ENVIRONMENT=${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+
+    - name: Show deployment info
+      run: |
+        echo "✅ Deployment completed successfully!"
+        echo "🌍 Service URL: https://${{ env.SERVICE_NAME }}-${{ env.PROJECT_ID }}-${{ env.REGION }}.a.run.app"
+        echo "🏷️ Image tag: ${{ env.TAG }}"
+        echo "🔧 Environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}"
