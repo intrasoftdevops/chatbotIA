@@ -38,6 +38,7 @@ jobs:
         project_id: ${{ env.PROJECT_ID }}
         service_account_key: ${{ secrets.GCP_SA_KEY }}
         export_default_credentials: true
+        authenticate_gcloud_implicitly: true
 
     - name: Configure Docker for GCR
       run: gcloud auth configure-docker
