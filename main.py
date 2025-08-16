@@ -125,7 +125,7 @@ async def startup_event():
         # Verificar que la API key esté configurada
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
-            raise RuntimeError("GOOGLE_API_KEY no está configurada en el archivo .env")
+            raise RuntimeError("GOOGLE_API_KEY no está configurada en las variables de entorno")
         
         print(f"Inicializando modelo: {LLM_MODEL}")
         llm = Gemini(model_name=LLM_MODEL)
