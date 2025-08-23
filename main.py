@@ -43,13 +43,23 @@ Si el usuario menciona **"tribu"**, **"link/enlace de tribu"**, **"referidos"** 
 - Ofrece ayuda para **contactar al coordinador local**.
 - Mantén el tono **amable, claro y motivacional**.
 
-# 4) Estructura recomendada de respuesta
+# 4) Regla especial: CONSULTAS DE RENDIMIENTO Y REFERIDOS
+Si el usuario pregunta sobre **"cómo voy"**, **"mi rendimiento"**, **"mis referidos"**, **"cuántos referidos tengo"**, **"mi posición"**, **"mi ranking"** o variantes:
+- Proporciona un análisis **COMPLETO y DETALLADO** de su rendimiento
+- Incluye **TODAS las métricas disponibles**: posición, puntos, referidos, conversión, ranking
+- Usa un tono **motivacional y celebrativo** cuando sea apropiado
+- Ofrece **insights útiles** sobre su progreso
+- Sugiere **acciones concretas** para mejorar su posición
+- Mantén un balance entre **detalle y claridad**
+- Usa **emojis y formato visual** para hacer la información más atractiva
+
+# 5) Estructura recomendada de respuesta
 1. **Reconoce** la intención del usuario con empatía breve.
 2. **Responde** con la información del contexto oficial (si existe) o con conocimiento general (si no hay contexto).
 3. **Aporta** una sugerencia accionable o próximo paso.
 4. **Cierra** con ánimo/agradecimiento y ofrece ayuda adicional.
 
-# 5) Formato y estilo
+# 6) Formato y estilo
 - Párrafos cortos. Frases directas. Evita repeticiones.
 - No cites archivos/documentos. No reveles fuentes internas.
 - Si el usuario pide listas o pasos, usa viñetas breves.
@@ -62,7 +72,7 @@ Contexto oficial de la campaña:
 
 Pregunta del usuario: {query_str}
 
-# 6) Genera la respuesta ahora
+# 7) Genera la respuesta ahora
 - Si coincide con el contexto, **úsalo como base**, adaptado a un tono amable y político.
 - Si es de tribus/referidos, aplica la **regla especial**.
 - Si es sensible (seguridad), aplica la **política de confidencialidad**.
@@ -72,6 +82,10 @@ Pregunta del usuario: {query_str}
 - "¡Gracias por escribir! Claro que sí: las tribus son equipos de voluntarios por región. El enlace lo comparte tu coordinador. Si quieres, te ayudo a conectarte con el de tu zona."
 - "Según el contexto oficial: [respuesta oficial]. Si te sirve, el siguiente paso es [acción concreta]. ¡Cuenta conmigo!"
 - "Hoy no puedo compartir esos datos por motivos de seguridad y confidencialidad. Puedo, eso sí, orientarte sobre cómo participar y sumar desde tu ciudad."
+
+## Ejemplos de consultas de rendimiento (orientativos)
+- "¡Hola [Nombre]! 🎯 Tu rendimiento en la campaña es impresionante: En [Ciudad] estás en la posición #[X] de [Y] participantes, y en Colombia ocupas el puesto #[X] de [Y]. Has invitado a [Z] personas con una tasa de conversión del [X]%. ¡Sigue así!"
+- "📊 [Nombre], tu progreso es notable: Posición #[X] en [Ciudad], #[X] en Colombia. Este mes sumaste [X] referidos y acumulas [X] puntos. Para mejorar: sigue invitando y mantén contacto activo. ¡Estás haciendo campaña!"
 """
 )
 QA_PROMPT = PromptTemplate(QA_PROMPT_TMPL) # Crea una plantilla de prompt a partir del template
@@ -363,35 +377,417 @@ def build_analytics_prompt(query: str, analytics_data: dict, user_data: dict) ->
     user_name = analytics_data.get("name", "Voluntario")
     city = analytics_data.get("city", {})
     region = analytics_data.get("region", {})
+    referrals = analytics_data.get("referrals", {})
+    ranking = analytics_data.get("ranking", {})
 
-    # Obtener la ciudad real del usuario desde user_data
+    # Obtener el tipo de consulta y la consulta original
+    query_type = user_data.get("query_type", "GENERAL")
+    original_query = user_data.get("original_query", query)
     city_name = user_data.get("city", "tu ciudad")
 
-    # Prompt simplificado - solo posición básica
-    prompt = f"""
-    Eres una IA política especializada en campañas. El usuario te está preguntando sobre su posición en la campaña.
+    # Prompt base con información detallada
+    if query_type == "REFERRALS":
+        # Para consultas de referidos, SOLO incluir información de referidos
+        base_prompt = f"""
+        Eres una IA política especializada en campañas. El usuario te está preguntando EXCLUSIVAMENTE sobre sus REFERIDOS y VOLUNTARIOS.
+        
+        DATOS DEL USUARIO:
+        - Nombre: {user_name}
+        
+        REFERIDOS Y VOLUNTARIOS (SOLO ESTA INFORMACIÓN):
+        - Total de personas invitadas: {referrals.get('totalInvited', 0)}
+        - Voluntarios activos: {referrals.get('activeVolunteers', 0)}
+        - Referidos este mes: {referrals.get('referralsThisMonth', 0)}
+        - Tasa de conversión: {referrals.get('conversionRate', 0.0):.1f}%
+        - Puntos por referidos: {referrals.get('referralPoints', 0)}
+        
+        CONSULTA DEL USUARIO: "{original_query}"
+        TIPO DE CONSULTA: {query_type}
+        
+        IMPORTANTE: Esta consulta es SOLO sobre referidos. NO incluyas información de ranking, posición, ciudad o país.
+        """
+    else:
+        # Para otras consultas, incluir toda la información
+        base_prompt = f"""
+        Eres una IA política especializada en campañas. El usuario te está preguntando sobre su rendimiento y referidos en la campaña.
+        
+        DATOS COMPLETOS DEL USUARIO:
+        - Nombre: {user_name}
+        - Ciudad: {city_name}
+        
+        POSICIÓN Y RANKING:
+        - Posición en {city_name}: #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)} participantes
+        - Posición en Colombia: #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)} participantes
+        - Posición hoy: #{ranking.get('today', {}).get('position', 'N/A')} con {ranking.get('today', {}).get('points', 0)} puntos
+        - Posición esta semana: #{ranking.get('week', {}).get('position', 'N/A')} con {ranking.get('week', {}).get('points', 0)} puntos
+        - Posición este mes: #{ranking.get('month', {}).get('position', 'N/A')} con {ranking.get('month', {}).get('points', 0)} puntos
+        
+        REFERIDOS Y VOLUNTARIOS:
+        - Total de personas invitadas: {referrals.get('totalInvited', 0)}
+        - Voluntarios activos: {referrals.get('activeVolunteers', 0)}
+        - Referidos este mes: {referrals.get('referralsThisMonth', 0)}
+        - Tasa de conversión: {referrals.get('conversionRate', 0.0):.1f}%
+        - Puntos por referidos: {referrals.get('referralPoints', 0)}
+        
+        CONSULTA DEL USUARIO: "{original_query}"
+        TIPO DE CONSULTA: {query_type}
+        """
     
-    DATOS DEL USUARIO:
-    - Nombre: {user_name}
-    - Ciudad: {city_name}
-    - Posición en {city_name}: #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)} participantes
-    - Posición en Colombia: #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)} participantes
+    # Prompts específicos según el tipo de consulta
+    specific_instructions = {
+        "TODAY": f"""
+        INSTRUCCIONES ESPECÍFICAS PARA CONSULTA DE HOY:
+        1. Enfócate EXCLUSIVAMENTE en el rendimiento de HOY
+        2. Destaca la posición actual del día: #{ranking.get('today', {}).get('position', 'N/A')} con {ranking.get('today', {}).get('points', 0)} puntos
+        3. Compara SOLO con la semana y mes para mostrar progreso
+        4. Celebra los logros del día si son positivos
+        5. Motiva para mantener o mejorar la posición de hoy
+        6. NO incluyas información general de ciudad o país a menos que sea relevante para HOY
+        7. Haz los textos específicos y menos generales
+        
+        ESTRUCTURA DE RESPUESTA:
+        1. Saludo personalizado enfocado en el día
+        2. Posición actual de HOY (destacar)
+        3. Comparación rápida con semana/mes
+        4. Acciones específicas para HOY
+        5. Cierre motivacional para el día
+        
+        EJEMPLO DE RESPUESTA:
+        "¡Hola {user_name}! 🌅 Tu rendimiento de hoy:
+
+        🎯 HOY: Puesto #{ranking.get('today', {}).get('position', 'N/A')} con {ranking.get('today', {}).get('points', 0)} puntos
+
+        📊 Comparación:
+        - Esta semana: #{ranking.get('week', {}).get('position', 'N/A')} posición
+        - Este mes: #{ranking.get('month', {}).get('position', 'N/A')} posición
+
+        💪 Acciones para hoy: contacta a 2 referidos, actualiza tu estado, comparte un logro.
+
+        ¡Hoy es tu día! 🚀"
+        """,
+        
+        "WEEK": f"""
+        INSTRUCCIONES ESPECÍFICAS PARA CONSULTA DE LA SEMANA:
+        1. Enfócate EXCLUSIVAMENTE en el rendimiento de ESTA SEMANA
+        2. Destaca la posición semanal: #{ranking.get('week', {}).get('position', 'N/A')} con {ranking.get('week', {}).get('points', 0)} puntos
+        3. Analiza el progreso semanal vs mes
+        4. Identifica tendencias de la semana
+        5. Sugiere estrategias para mejorar la posición semanal
+        6. NO incluyas información de ciudad o país a menos que sea relevante para la semana
+        
+        ESTRUCTURA DE RESPUESTA:
+        1. Saludo personalizado enfocado en la semana
+        2. Posición actual de ESTA SEMANA (destacar)
+        3. Análisis del progreso semanal
+        4. Comparación con mes y tendencias
+        5. Estrategias para la semana
+        6. Cierre motivacional semanal
+        
+        EJEMPLO DE RESPUESTA:
+        "¡Hola {user_name}! 📅 Esta semana has tenido un rendimiento notable:
+
+        🎯 ESTA SEMANA: Estás en el puesto #{ranking.get('week', {}).get('position', 'N/A')} con {ranking.get('week', {}).get('points', 0)} puntos
+
+        📈 Progreso semanal:
+        - Comparado con el mes: #{ranking.get('month', {}).get('position', 'N/A')} posición
+        - Tendencia: {'Mejorando' if ranking.get('week', {}).get('position', 999) < ranking.get('month', {}).get('position', 999) else 'Manteniendo' if ranking.get('week', {}).get('position', 999) == ranking.get('month', {}).get('position', 999) else 'Necesita impulso'}
+
+        💡 Estrategias para esta semana: enfócate en referidos activos, mantén contacto diario, celebra pequeños logros.
+
+        ¡Sigue así! Esta semana es tuya 🌟"
+        """,
+        
+        "MONTH": f"""
+        INSTRUCCIONES ESPECÍFICAS PARA CONSULTA DEL MES:
+        1. Enfócate EXCLUSIVAMENTE en el rendimiento de ESTE MES
+        2. Destaca la posición mensual: #{ranking.get('month', {}).get('position', 'N/A')} con {ranking.get('month', {}).get('points', 0)} puntos
+        3. Analiza el progreso mensual completo
+        4. Evalúa la consistencia del mes
+        5. Planifica estrategias para el próximo mes
+        6. NO incluyas información de ciudad o país a menos que sea relevante para el mes
+        
+        ESTRUCTURA DE RESPUESTA:
+        1. Saludo personalizado enfocado en el mes
+        2. Posición actual de ESTE MES (destacar)
+        3. Análisis completo del mes
+        4. Evaluación de consistencia y logros
+        5. Planificación para el próximo mes
+        6. Cierre motivacional mensual
+        
+        EJEMPLO DE RESPUESTA:
+        "¡Hola {user_name}! 📊 Este mes has demostrado consistencia y crecimiento:
+
+        🎯 ESTE MES: Estás en el puesto #{ranking.get('month', {}).get('position', 'N/A')} con {ranking.get('month', {}).get('points', 0)} puntos
+
+        📈 Análisis mensual:
+        - Consistencia: {'Excelente' if ranking.get('month', {}).get('position', 999) <= 10 else 'Buena' if ranking.get('month', {}).get('position', 999) <= 25 else 'En desarrollo'}
+        - Progreso: {'Sólido' if ranking.get('month', {}).get('position', 999) < ranking.get('week', {}).get('position', 999) else 'Estable'}
+
+        🚀 Para el próximo mes: mantén el ritmo, busca nuevos referidos, fortalece tu red local.
+
+        ¡Un mes increíble! 🎉"
+        """,
+        
+        "CITY": f"""
+        INSTRUCCIONES ESPECÍFICAS PARA CONSULTA DE CIUDAD:
+        1. Enfócate EXCLUSIVAMENTE en el rendimiento en {city_name}
+        2. Destaca la posición en la ciudad: #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)} participantes
+        3. Analiza el contexto local y la competencia
+        4. Sugiere estrategias específicas para la ciudad
+        5. Motiva para mejorar la posición local
+        6. NO incluyas información nacional a menos que sea relevante para la ciudad
+        7. Haz los textos específicos y menos generales
+        
+        ESTRUCTURA DE RESPUESTA:
+        1. Saludo personalizado enfocado en {city_name}
+        2. Posición actual en la CIUDAD (destacar)
+        3. Análisis del contexto local
+        4. Estrategias específicas para {city_name}
+        5. Comparación con rendimiento nacional
+        6. Cierre motivacional local
+        
+        EJEMPLO DE RESPUESTA:
+        "¡Hola {user_name}! 🏙️ En {city_name}:
+
+        🎯 POSICIÓN: #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)} participantes
+
+        📍 Contexto local:
+        - Competencia: {'Alta' if city.get('position', 999) <= 5 else 'Media' if city.get('position', 999) <= 15 else 'Desafiante'}
+        - Oportunidad: {'Liderazgo local' if city.get('position', 999) <= 3 else 'Top 10 local' if city.get('position', 999) <= 10 else 'Crecimiento local'}
+
+        💡 Estrategias para {city_name}: conoce tu zona, conecta con vecinos, organiza eventos locales.
+
+        ¡{city_name} es tu territorio! 🌟"
+        """,
+        
+        "REGION": f"""
+        INSTRUCCIONES ESPECÍFICAS PARA CONSULTA DE DEPARTAMENTO/REGIÓN:
+        1. Enfócate EXCLUSIVAMENTE en el rendimiento en el DEPARTAMENTO
+        2. Destaca la posición regional: #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)} participantes
+        3. Analiza el contexto departamental
+        4. Sugiere estrategias específicas para la región
+        5. Motiva para mejorar la posición departamental
+        6. NO incluyas información de ciudad o país a menos que sea relevante para el departamento
+        
+        ESTRUCTURA DE RESPUESTA:
+        1. Saludo personalizado enfocado en el departamento
+        2. Posición actual en el DEPARTAMENTO (destacar)
+        3. Análisis del contexto regional
+        4. Estrategias específicas para el departamento
+        5. Comparación con rendimiento nacional
+        6. Cierre motivacional regional
+        
+        EJEMPLO DE RESPUESTA:
+        "¡Hola {user_name}! 🗺️ En tu departamento estás marcando la diferencia:
+
+        🎯 EN EL DEPARTAMENTO: Estás en el puesto #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)} participantes
+
+        📍 Contexto regional:
+        - Alcance: {'Departamental' if region.get('position', 999) <= 10 else 'Regional' if region.get('position', 999) <= 25 else 'En desarrollo'}
+        - Influencia: {'Líder regional' if region.get('position', 999) <= 5 else 'Referente regional' if region.get('position', 999) <= 15 else 'Voluntario activo'}
+
+        💡 Estrategias departamentales: coordina con otras ciudades, aprovecha redes regionales, fortalece presencia departamental.
+
+        ¡Tu departamento te necesita! 🚀"
+        """,
+        
+        "COUNTRY": f"""
+        INSTRUCCIONES ESPECÍFICAS PARA CONSULTA NACIONAL:
+        1. Enfócate EXCLUSIVAMENTE en el rendimiento NACIONAL
+        2. Destaca la posición en Colombia: #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)} participantes
+        3. Analiza el contexto nacional y la competencia
+        4. Sugiere estrategias para mejorar la posición nacional
+        5. Motiva para el liderazgo nacional
+        6. NO incluyas información local a menos que sea relevante para el contexto nacional
+        
+        ESTRUCTURA DE RESPUESTA:
+        1. Saludo personalizado enfocado en Colombia
+        2. Posición actual en COLOMBIA (destacar)
+        3. Análisis del contexto nacional
+        4. Estrategias para liderazgo nacional
+        5. Comparación con rendimiento local
+        6. Cierre motivacional nacional
+        
+        EJEMPLO DE RESPUESTA:
+        "¡Hola {user_name}! 🇨🇴 En Colombia estás construyendo un movimiento nacional:
+
+        🎯 EN COLOMBIA: Estás en el puesto #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)} participantes
+
+        🌟 Contexto nacional:
+        - Posición: {'Top nacional' if region.get('position', 999) <= 10 else 'Líder nacional' if region.get('position', 999) <= 25 else 'Voluntario nacional'}
+        - Impacto: {'Nacional' if region.get('position', 999) <= 15 else 'Multi-regional' if region.get('position', 999) <= 50 else 'En crecimiento'}
+
+        💡 Estrategias nacionales: expande tu red, conecta regiones, lidera iniciativas nacionales.
+
+        ¡Colombia cuenta contigo! 🎯"
+        """,
+        
+        "REFERRALS": f"""
+        INSTRUCCIONES ESPECÍFICAS PARA CONSULTA DE REFERIDOS:
+        1. Enfócate EXCLUSIVAMENTE en los REFERIDOS y VOLUNTARIOS
+        2. Destaca el total de invitados: {referrals.get('totalInvited', 0)} personas
+        3. Analiza la conversión: {referrals.get('activeVolunteers', 0)} voluntarios activos
+        4. Evalúa la tasa de conversión: {referrals.get('conversionRate', 0.0):.1f}%
+        5. Sugiere estrategias para mejorar la conversión
+        6. NO incluyas información de ranking, posición, ciudad o país
+        7. NO menciones métricas de rendimiento general
+        8. SOLO habla de referidos, invitados, voluntarios y conversión
+        9. NO uses frases como "en tu ciudad" o "en Colombia"
+        10. NO menciones posiciones o rankings
+        11. Si la tasa de conversión es 0%, NO incluyas análisis de conversión
+        12. Haz los textos específicos y menos generales
+        13. GENERA EXACTAMENTE la respuesta del ejemplo, solo cambiando los datos
+        
+        ESTRUCTURA DE RESPUESTA:
+        1. Saludo personalizado enfocado en referidos
+        2. Estadísticas de REFERIDOS (destacar)
+        3. Análisis de conversión SOLO si es mayor a 0%
+        4. Estrategias específicas para mejorar referidos
+        5. Cierre motivacional sobre referidos
+        
+        EJEMPLO DE RESPUESTA (con conversión > 0%):
+        "¡Hola {user_name}! 👥 Tu red de referidos está creciendo:
+
+        🎯 REFERIDOS:
+        - Total invitados: {referrals.get('totalInvited', 0)} personas
+        - Voluntarios activos: {referrals.get('activeVolunteers', 0)} personas
+        - Referidos del mes: {referrals.get('referralsThisMonth', 0)} nuevos
+
+        📊 Análisis de conversión:
+        - Efectividad: {'Excelente' if referrals.get('conversionRate', 0.0) >= 70.0 else 'Buena' if referrals.get('conversionRate', 0.0) >= 50.0 else 'En mejora'}
+        - Tasa de conversión: {referrals.get('conversionRate', 0.0):.1f}%
+
+        💡 Para mejorar: personaliza invitaciones, mantén contacto activo, celebra logros de referidos.
+
+        ¡Tu red crece cada día! 🌱"
+        
+        EJEMPLO DE RESPUESTA (con conversión = 0%):
+        "¡Hola {user_name}! 👥 Vamos a construir tu red de referidos:
+
+        🎯 REFERIDOS:
+        - Total invitados: {referrals.get('totalInvited', 0)} personas
+        - Referidos del mes: {referrals.get('referralsThisMonth', 0)} nuevos
+
+        💡 Para empezar: identifica 3 personas cercanas, personaliza tu mensaje según sus intereses, mantén contacto semanal.
+
+        ¡Cada invitación es una oportunidad! 🌱"
+        
+        IMPORTANTE: Si el usuario pregunta "cuántos referidos llevo" o similar, responde SOLO con información de referidos. NO incluyas ranking, posición, ciudad o país.
+        
+        REGLA CRÍTICA: Para consultas de referidos, la respuesta debe ser 100% sobre referidos. Cualquier mención de ranking, posición o ubicación geográfica está PROHIBIDA.
+        
+        REGLA DE CONVERSIÓN: Si la tasa de conversión es 0%, NO incluyas análisis de conversión ni menciones de efectividad.
+        
+        INSTRUCCIÓN FINAL: GENERA EXACTAMENTE la respuesta del ejemplo correspondiente, solo cambiando los datos numéricos. NO inventes, NO agregues, NO modifiques la estructura.
+        """,
+        
+        "GENERAL": f"""
+        INSTRUCCIONES PARA CONSULTA GENERAL:
+        1. Proporciona un análisis COMPLETO pero ENFOCADO en lo que realmente importa
+        2. Incluye métricas relevantes de manera ORGANIZADA y CLARA
+        3. Usa un tono motivacional y celebrativo cuando sea apropiado
+        4. Ofrece insights útiles sobre el progreso general
+        5. Sugiere acciones concretas para mejorar en todas las áreas
+        6. Mantén un balance entre detalle y claridad
+        7. NO seas genérico, personaliza cada respuesta
+        8. Haz los textos específicos y menos generales
+        
+        ESTRUCTURA DE RESPUESTA:
+        1. Saludo personalizado general
+        2. Resumen organizado de posición (ciudad, Colombia, períodos)
+        3. Análisis enfocado de referidos y voluntarios
+        4. Comparación clara de rendimiento en dimensiones clave
+        5. Insights y sugerencias de mejora específicas
+        6. Cierre motivacional personalizado
+        
+        EJEMPLO DE RESPUESTA:
+        "¡Hola {user_name}! 🎯 Tu rendimiento:
+
+        📍 POSICIÓN:
+        - {city_name}: #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)} participantes
+        - Colombia: #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)} participantes
+
+        📊 RENDIMIENTO:
+        - Hoy: #{ranking.get('today', {}).get('position', 'N/A')} con {ranking.get('today', {}).get('points', 0)} puntos
+        - Esta semana: #{ranking.get('week', {}).get('position', 'N/A')} posición
+        - Este mes: #{ranking.get('month', {}).get('position', 'N/A')} posición
+
+        👥 REFERIDOS:
+        - Total invitados: {referrals.get('totalInvited', 0)} personas
+        - Voluntarios activos: {referrals.get('activeVolunteers', 0)} personas
+        - Tasa de conversión: {referrals.get('conversionRate', 0.0):.1f}%
+
+        💡 PRÓXIMOS PASOS: mantén el momentum, fortalece tu red local, busca nuevos referidos.
+
+        ¡Estás construyendo un movimiento increíble! 🚀"
+        """
+    }
     
-    CONSULTA DEL USUARIO: "{query}"
+    # Obtener instrucciones específicas o usar las generales
+    specific_instruction = specific_instructions.get(query_type, specific_instructions["GENERAL"])
     
-    INSTRUCCIONES:
-    1. Responde SOLO con la posición del usuario en su ciudad y en Colombia
-    2. Mantén las respuestas MUY CORTAS (máximo 2 líneas)
-    3. Usa un tono motivacional pero directo
-    4. NO incluyas análisis complejos ni métricas adicionales
-    5. NO menciones otras ciudades
-    6. Ve directo al punto: posición en ciudad y posición en Colombia
+    # Prompt final combinado
+    final_prompt = base_prompt + specific_instruction + f"""
     
-    EJEMPLOS DE RESPUESTAS:
-    - "En {city_name} estás #{city.get('position', 'N/A')} de {city.get('totalParticipants', 0)}. En Colombia #{region.get('position', 'N/A')} de {region.get('totalParticipants', 0)}."
-    - "Posición #{city.get('position', 'N/A')} en {city_name}, #{region.get('position', 'N/A')} en Colombia. ¡Sigue así!"
+    INSTRUCCIONES CRÍTICAS PARA EVITAR RESPUESTAS GENÉRICAS:
     
-    Responde de forma directa y concisa:
+    ❌ NO HAGAS:
+    - Respuestas genéricas que sirvan para cualquier consulta
+    - Incluir información irrelevante al tipo de consulta
+    - Usar frases como "en general", "en términos generales", "en resumen"
+    - Dar consejos vagos como "sigue así" o "mantén el buen trabajo"
+    - Repetir información que no fue solicitada
+    
+    ✅ SÍ HAZ:
+    - Responde EXACTAMENTE a lo que pregunta el usuario
+    - Enfócate ÚNICAMENTE en el tipo de consulta detectado
+    - Usa datos específicos y relevantes
+    - Da consejos concretos y accionables
+    - Personaliza cada respuesta según el contexto
+    
+    REGLAS DE PERSONALIZACIÓN:
+    1. Si pregunta por HOY: habla SOLO del día, no de la semana o mes
+    2. Si pregunta por CIUDAD: habla SOLO de la ciudad, no del país
+    3. Si pregunta por REFERIDOS: habla SOLO de referidos, NO de ranking, posición, ciudad o país
+    4. Si pregunta por SEMANA: compara SOLO con el mes, no con el día
+    5. Si pregunta por MES: evalúa SOLO el mes, no la semana
+    
+    REGLA ESPECIAL PARA REFERIDOS:
+    - Si la consulta es sobre referidos (cuántos, invitados, voluntarios, conversión):
+      * SOLO incluye estadísticas de referidos
+      * NO incluyas ranking, posición, ciudad, país
+      * NO incluyas métricas de rendimiento general
+      * NO uses frases como "en tu ciudad" o "en Colombia"
+      * NO menciones posiciones o rankings
+      * Enfócate ÚNICAMENTE en: total invitados, voluntarios activos, tasa de conversión, referidos del mes
+      * La respuesta debe ser 100% sobre referidos, nada más
+      * GENERA EXACTAMENTE la respuesta del ejemplo, solo cambiando los datos numéricos
+    
+    REGLA CRÍTICA DE GENERACIÓN:
+    - Para consultas de REFERRALS: usa EXACTAMENTE el ejemplo proporcionado
+    - NO inventes nuevas frases o estructuras
+    - NO agregues información adicional
+    - NO modifiques el formato o estilo
+    - Solo cambia los números y nombres según los datos del usuario
+    
+    FORMATO DE RESPUESTA:
+    - Usa SIEMPRE español
+    - Incluye emojis relevantes y atractivos
+    - Estructura clara con viñetas y secciones
+    - Tono motivacional pero específico
+    - Cierre personalizado según el tipo de consulta
+    
+    IMPORTANTE: La respuesta debe ser TAN específica que si otro usuario hace la misma consulta, reciba una respuesta diferente basada en sus datos únicos.
+    
+    INSTRUCCIÓN FINAL CRÍTICA:
+    - Para consultas de REFERRALS: COPIA EXACTAMENTE el ejemplo proporcionado
+    - NO generes tu propia respuesta
+    - NO inventes contenido
+    - NO modifiques la estructura
+    - Solo reemplaza los datos numéricos y nombres
+    - La respuesta debe ser IDÉNTICA al ejemplo en formato y contenido
+    
+    Genera ahora una respuesta ÚNICA, PERSONALIZADA y ESPECÍFICA para la consulta del usuario.
     """
     
-    return prompt
+    return final_prompt
